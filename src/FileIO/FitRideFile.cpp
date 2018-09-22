@@ -329,7 +329,7 @@ struct FitFileReaderState
         if (manu == 1) {
             // Garmin
             // Product IDs can be found in c/fit_example.h in the FIT SDK.
-            // Multiple product IDs refer to different regions e.g. China, Japan etc. 
+            // Multiple product IDs refer to different regions e.g. China, Japan etc.
             switch (prod) {
                 case -1: return "Garmin";
                 case 16: case 20: return "Garmin Cadence Sensor 2";
@@ -877,13 +877,23 @@ struct FitFileReaderState
         bool sport_found = false, subsport_found = false;
         QString prevSport = rideFile->getTag("Sport", "");
         double pool_length = 0.0;
+	QString WorkOutCode = NULL;
+        bool have_subsport = false;
 
         foreach(const FitField &field, def.fields) {
-            fit_value_t value = values[i++].v;
+            fit_value_t value = values[i].v;
 
-            if( value == NA_VALUE )
-                continue;
-
+            if( value == NA_VALUE)
+                {
+                    fit_string_value value_s = values[i++].s;
+                    if (field.num == 110 && QString(value_s.c_str()).startsWith("Hockey"))
+                        {
+                            rideFile->setTag("SubSport","Hockey");
+                            have_subsport = true;
+                        }
+                    continue;
+                }
+            i++;
             switch (field.num) {
                 case 5: // sport field
                   if (sport_found == false) {
@@ -959,6 +969,7 @@ struct FitFileReaderState
                       subsport_found = true;
                       switch (value) {
                         case 0:    // generic
+                            if (!have_subsport)
                             subsport = "";
                             break;
                         case 1:    // treadmill
@@ -1334,7 +1345,7 @@ struct FitFileReaderState
 
         if (local_timestamp < 0 || timestamp < 0)
             return;
-        
+
         if (0 == local_timestamp && 0 == timestamp)
             return;
 
@@ -1620,7 +1631,7 @@ struct FitFileReaderState
                 errors << QString("lap %1 is ignored (invalid end time)").arg(interval);
                 return;
             }
-        } 
+        }
 
         if (isLapSwim) {
             // Fill empty lengths due to false starts or pauses in some devices
@@ -3642,7 +3653,7 @@ void write_session(QByteArray *array, const RideFile *ride, QHash<QString,RideMe
     write_int32(array, value, true);
 
     // 6. sport
-    // Export as bike, run or swim, default sport is bike. 
+    // Export as bike, run or swim, default sport is bike.
     // todo: support all sports based on tag "Sport"
     int sport = ride->isRun() ? 1 : ride->isSwim() ? 5 : 2;
     write_int8(array, sport);
@@ -3978,7 +3989,7 @@ FitFileReader::toByteArray(Context *context, const RideFile *ride, bool withAlt,
     write_file_id(&data, ride); // file_id 0
     write_file_creator(&data); // file_creator 49
     write_start_event(&data, ride); // event 21 (x15)
-    write_record(&data, ride, withAlt, withWatts, withHr, withCad); // record 20 (x14)  
+    write_record(&data, ride, withAlt, withWatts, withHr, withCad); // record 20 (x14)
     write_lap(&data, ride); // lap 19 (x11)
     write_stop_event(&data, ride); // event 21 (x15)
     write_session(&data, ride, computed); // session 18 (x12)
@@ -4006,7 +4017,3 @@ FitFileReader::writeRideFile(Context *context, const RideFile *ride, QFile &file
     file.close();
     return(true);
 }
-
-
-
-
