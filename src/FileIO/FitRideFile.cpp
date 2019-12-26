@@ -1500,6 +1500,27 @@ struct FitFileReaderState
         last_event_type = event_type;
     }
 
+    void decodeUserInfo(const FitDefinition &def,
+                        const std::vector<FitValue>& values){
+        int i=0;
+
+        /* weight = ride->getTag("Weight", "0.0").toDouble(); */
+        /* ride->setTag("Weight", );*/
+        foreach(const FitField &field, def.fields) {
+            const FitValue& value = values[i++];
+            //printf ("\tfield: num: %d ", field.num);
+            //DumpFitValue(value);
+            if( value.v == NA_VALUE )
+                continue;
+            switch (field.num) {
+            case 3: /* Weight in kg * 10 */
+                rideFile->setTag("Weight", QString("%1").arg(value.v / 10.0));
+                break;
+            default: ; // ignore it
+            }
+        }
+    }
+
     void decodeHRV(const FitDefinition &def,
                    const std::vector<FitValue>& values) {
         int rrvalue;
@@ -3072,10 +3093,16 @@ struct FitFileReaderState
                 case 72: /* training file (undocumented) : new since garmin 800 */
                     break;
                 case HRV_MSG_NUM:
-		  decodeHRV(def, values);
-		  break; /* hrv */
-                case 79: /* HR zone (undocumented) ; see details below: */
-                         /* #253: timestamp / #1: default Min HR / #2: default Max HR / #5: user Min HR / #6: user Max HR */
+                    decodeHRV(def, values);
+                    break; /* hrv */
+                case 79: /* HR zone (undocumented) ; see details below: 
+                            #253: timestamp 
+                            #1: Age: <current year> - <birth year of user>
+                            #2: Height cm
+                            #3: Weight kg * 10
+                         */
+                    decodeUserInfo(def, values);
+                    break;
                 case 103: /* monitoring info */
                 case 104: /* battery */
                 case 105: /* pad */
