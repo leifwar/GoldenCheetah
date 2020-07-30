@@ -1631,10 +1631,12 @@ struct FitFileReaderState
                 case 18: // MaxCad
                 case 21: // total ascent
                 case 22: // total descent
+                case 25: // sport (probably same as above)
                 case 27: // north-east lat (bounding box)
                 case 28: // north-east lon
                 case 29: // south west lat
                 case 30: // south west lon
+                case 39: // sub-sport
                     break;
                 default: ; // ignore it
             }
@@ -1674,7 +1676,13 @@ struct FitFileReaderState
         } else if (rideFile->dataPoints().count()) { // no samples means no laps
             ++interval;
             if (lap_name == "") {
-                lap_name = QObject::tr("Lap %1").arg(interval);
+                 if (interval == 1){
+                      lap_name = QObject::tr("Oppvarming").arg(interval);
+                 } else if (interval % 2) {
+                      lap_name = QObject::tr("Lav %1").arg(interval / 2);
+                 } else {
+                      lap_name = QObject::tr("Høy %1").arg(interval / 2);
+                 }
             }
             rideFile->addInterval(RideFileInterval::DEVICE,
                                   this_start_time - start_time,
